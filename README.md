@@ -1,5 +1,9 @@
 # HailoRT YOLOXP for Low Power Edge AI
 
+
+https://github.com/tier4/hailort-yoloXP/assets/127905436/0cdbc38f-f980-4bc8-aea0-2b845f876698
+
+
 ## Purpose
 
 This package implements YOLOXP on Hailo-8 chip with HailoRT for low power inference.
