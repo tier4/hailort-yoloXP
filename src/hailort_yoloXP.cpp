@@ -103,10 +103,10 @@ void doPostprocess(std::shared_ptr<hailortCommon::HrtCommon> hrtCommon, std::sha
       //Post-Process
       //ToDo : Remove last layer (Transpose) from ONNX for optimization in HailoRT
       for (int i = 0; i < (int)size; i++) {
-	int xy = i % feature;
-	int c = i / feature;
-	int index = xy * chan + c;
-	f_results[output_index][index] = hrtCommon->dequant(&results[output_index][i], qp_scale, qp_zp, info.format.type);	
+        int xy = i % feature;
+        int c = i / feature;
+        int index = xy * chan + c;
+        f_results[output_index][index] = hrtCommon->dequant(&results[output_index][i], qp_scale, qp_zp, info.format.type);	
       }
       
       yoloXP->decodeOutputs(std::ref(output_streams[output_index]), std::ref(input_streams[0]), f_results[output_index].data(), object_array, src.size());
@@ -127,11 +127,12 @@ void doPostprocess(std::shared_ptr<hailortCommon::HrtCommon> hrtCommon, std::sha
   cv::putText(src, "FPS :" + format(fps, 4) , cv::Point(20, src.rows-60), 0, 1, cv::Scalar(255, 255,255), 1);
   cv::putText(src, "DNN Time :" + format(inftime, 4) , cv::Point(240, src.rows-60), 0, 1, cv::Scalar(255, 255,255), 1);      
   cv::putText(src, "Peak Power :" + format(max_power, 4) + "W", cv::Point(20, src.rows-20), 0, 1, cv::Scalar(255, 255,255), 1);
-  cv::namedWindow("inference", cv::WINDOW_NORMAL);  
-  cv::imshow("inference", src);
+
+  cv::imshow("hailort_inference", src);
   if (cv::waitKey(1) == 'q');
   timer.out("Postprocess");
 }
+
 
 int
 main(int argc, char* argv[])
@@ -139,7 +140,7 @@ main(int argc, char* argv[])
   std::vector<std::vector<uint8_t>> results;
   std::vector<std::vector<float>> f_results;
   int output_index;
-  cv::VideoCapture video;
+  // cv::VideoCapture video;
   cv::Mat src;    
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   std::string videoName = get_video_path();
@@ -148,7 +149,10 @@ main(int argc, char* argv[])
   float nmsThresh = get_nms_thresh();
   int numClasses = get_classes();
   float thresh = get_score_thresh();
+  int reduce_ratio = get_reduce_ratio();
   std::vector<int> output_strides = {8, 16, 32};
+
+  cv::VideoCapture video;
 
   auto hrtCommon = std::make_shared<hailortCommon::HrtCommon>();
   
@@ -208,12 +212,27 @@ main(int argc, char* argv[])
   auto yoloXP = std::make_shared<yoloXP::YoloXP>(output_strides, numClasses, thresh, nmsThresh);
   float elapsed = 0.0;
   float inftime = 0.0;    
+
+
   if (videoName != "" || cam_id != -1) { 
     if (cam_id != -1) {
       video.open(cam_id);
     } else {
       video.open(videoName);
     }
+
+    // Get the width and height of the video frames
+    int frame_width = static_cast<int>(video.get(cv::CAP_PROP_FRAME_WIDTH));
+    int frame_height = static_cast<int>(video.get(cv::CAP_PROP_FRAME_HEIGHT));
+
+    // Print the frame size
+    std::cout << "Frame Width: " << frame_width << std::endl;
+    std::cout << "Frame Height: " << frame_height << std::endl;
+
+    // Create a window to display the video
+    cv::namedWindow("hailort_inference", cv::WINDOW_NORMAL);
+    cv::resizeWindow("hailort_inference", int(frame_width / reduce_ratio), int(frame_height / reduce_ratio));
+
     cv::Mat input;
     video >> src;
     if (!src.empty()) {
@@ -222,6 +241,7 @@ main(int argc, char* argv[])
     infer(hrtCommon, std::ref(vstreams->first),std::ref(vstreams->second), std::ref(input.data), std::ref(results), &inftime);
     cv::Mat vis = src.clone();
     float max_power = 0.0;
+
     while (1) {
       Timer timer;
       if (src.empty() == true) break;
@@ -237,8 +257,8 @@ main(int argc, char* argv[])
       inference_thread.join();
       elapsed = timer.out("Total");
       for (auto &physical_device : physical_devices.value()) {
-	auto measurement_result = physical_device.get().get_power_measurement(MEASUREMENT_BUFFER_INDEX, true);
-	max_power = measurement_result.value().max_value;
+        auto measurement_result = physical_device.get().get_power_measurement(MEASUREMENT_BUFFER_INDEX, true);
+        max_power = measurement_result.value().max_value;
       }          
     }
   } else {
@@ -254,8 +274,8 @@ main(int argc, char* argv[])
       infer(hrtCommon, std::ref(vstreams->first),std::ref(vstreams->second), std::ref(input.data), std::ref(results), &inftime);      
       elapsed = timer.out("inference");
       for (auto &physical_device : physical_devices.value()) {
-	auto measurement_result = physical_device.get().get_power_measurement(MEASUREMENT_BUFFER_INDEX, true);
-	max_power = measurement_result.value().max_value;
+        auto measurement_result = physical_device.get().get_power_measurement(MEASUREMENT_BUFFER_INDEX, true);
+        max_power = measurement_result.value().max_value;
       }    
       doPostprocess(hrtCommon, yoloXP, std::ref(vstreams->first), std::ref(vstreams->second), std::ref(results),  std::ref(f_results),  std::ref(src), elapsed, inftime, max_power);
     }
