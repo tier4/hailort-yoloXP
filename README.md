@@ -13,7 +13,7 @@ Install HailoRT from Hailo (https://hailo.ai/ja/developer-zone/)
 
 Moreover, you need to install as bellow.
 ```bash
-sudo apt-get install libgflags-dev
+sudo apt-get install libgflags-dev libboost-all-dev
 ```
 
 ## Building

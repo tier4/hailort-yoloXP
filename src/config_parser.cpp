@@ -60,6 +60,8 @@ DEFINE_bool(save_detections, false,
 DEFINE_string(save_detections_path, "outputs/",
               "[OPTIONAL] Path where the images overlayed with bounding boxes are to be saved");
 
+DEFINE_int64(reduce_ratio, 4, "[OPTIONAL] The reduce ratio of the original video when show the video");
+
 std::string
 get_hef_path(void)
 {
@@ -198,6 +200,12 @@ double
 get_nms_thresh(void)
 {
   return FLAGS_nmsThresh;
+}
+
+int
+get_reduce_ratio(void)
+{
+  return FLAGS_reduce_ratio;
 }
 
 

@@ -49,6 +49,9 @@ get_score_thresh(void);
 extern double
 get_nms_thresh(void);
 
+extern int
+get_reduce_ratio(void);
+
 extern bool
 getSaveDetections();
 

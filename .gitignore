@@ -24,3 +24,4 @@ api/
 .ipynb_checkpoints
 *.idea
 Dockerfile
+compile_commands.json
